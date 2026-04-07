@@ -46,7 +46,7 @@ chess-rl-project/
 ### 1️⃣ Clone the repository
 
 
-git clone https://github.com/pundlachandu1703/chess-rl-project.git
+git clone https://github.com/pundlachandu1703/rl_chess_project
 
 cd chess-rl-project
 
