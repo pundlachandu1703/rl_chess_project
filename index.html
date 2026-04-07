@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Chess RL Game</title>
+
+<style>
+body {
+    margin: 0;
+    background: linear-gradient(135deg, #141e30, #243b55);
+    color: white;
+    text-align: center;
+    font-family: Arial;
+}
+
+#board {
+    display: grid;
+    grid-template-columns: repeat(8, 70px);
+    width: 560px;
+    margin: 20px auto;
+    border: 5px solid #333;
+}
+
+.square {
+    width: 70px;
+    height: 70px;
+    font-size: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.white { background: #f0d9b5; }
+.black { background: #b58863; }
+
+.selected {
+    outline: 3px solid yellow;
+}
+
+button {
+    padding: 10px;
+    margin: 10px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>♟️ Chess RL Game</h1>
+<h3 id="status">Your Move</h3>
+
+<div id="board"></div>
+
+<button onclick="resetGame()">Reset</button>
+
+<script>
+const boardDiv = document.getElementById("board");
+const statusText = document.getElementById("status");
+
+const pieces = {
+    "r":"♜","n":"♞","b":"♝","q":"♛","k":"♚","p":"♟",
+    "R":"♖","N":"♘","B":"♗","Q":"♕","K":"♔","P":"♙"
+};
+
+let selected = null;
+
+let boardState = [
+    "rnbqkbnr",
+    "pppppppp",
+    "........",
+    "........",
+    "........",
+    "........",
+    "PPPPPPPP",
+    "RNBQKBNR"
+];
+
+function drawBoard() {
+    boardDiv.innerHTML = "";
+
+    for (let r=0;r<8;r++) {
+        for (let c=0;c<8;c++) {
+
+            let sq = document.createElement("div");
+            sq.className = "square " + ((r+c)%2===0?"white":"black");
+
+            let p = boardState[r][c];
+            if (p !== ".") sq.innerText = pieces[p];
+
+            sq.dataset.row = r;
+            sq.dataset.col = c;
+
+            sq.onclick = handleClick;
+
+            boardDiv.appendChild(sq);
+        }
+    }
+}
+
+function handleClick(e) {
+    let row = e.target.dataset.row;
+    let col = e.target.dataset.col;
+
+    clearSelection();
+
+    if (!selected) {
+        selected = {row, col};
+        e.target.classList.add("selected");
+    } else {
+        makeMove(selected, {row, col});
+        selected = null;
+    }
+}
+
+function clearSelection() {
+    document.querySelectorAll(".square").forEach(sq => {
+        sq.classList.remove("selected");
+    });
+}
+
+/* 🔥 FIXED FETCH FUNCTION */
+function makeMove(from, to) {
+    statusText.innerText = "AI Thinking...";
+
+    fetch("http://127.0.0.1:5000/move", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            from: {
+                row: parseInt(from.row),
+                col: parseInt(from.col)
+            },
+            to: {
+                row: parseInt(to.row),
+                col: parseInt(to.col)
+            }
+        })
+    })
+    .then(res => {
+        if (!res.ok) throw new Error("Server error");
+        return res.json();
+    })
+    .then(data => {
+        boardState = data.board;
+        drawBoard();
+        statusText.innerText = "Your Move";
+    })
+    .catch(err => {
+        console.error(err);
+        statusText.innerText = "❌ Error connecting to server!";
+    });
+}
+
+function resetGame() {
+    fetch("http://127.0.0.1:5000/reset")
+    .then(res => res.json())
+    .then(data => {
+        boardState = data.board;
+        drawBoard();
+        statusText.innerText = "Game Reset!";
+    });
+}
+
+drawBoard();
+</script>
+
+</body>
+</html>
